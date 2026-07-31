@@ -45,9 +45,8 @@ Puedes descargar el paquete comprimido directamente por HTTP o usando SCP desde 
   ```
 
 * **Opción B (SCP Seguro):**
-  Usa la contraseña `hrsolucionesVPS3-` cuando te sea requerida:
   ```bash
-  sshpass -p 'hrsolucionesVPS3-' scp -P 49222 root@187.77.21.237:/opt/fda-psg-mcp/skill.zip .
+  scp -P 49222 root@187.77.21.237:/opt/fda-psg-mcp/skill.zip .
   ```
 
 ### 2. Descomprimir e Instalar en el Workspace
