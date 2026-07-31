@@ -20,7 +20,7 @@ skills/fda-psg/
 ```
 
 ## Configuración y Dependencia MCP
-El archivo `openai.yaml` asocia este Skill directamente con el servidor MCP remoto expuesto por el VPS a través del túnel interactivo:
+El archivo `openai.yaml` asocia este Skill directamente con el servidor MCP remoto expuesto por el VPS a través del Proxy de Apache:
 
 ```yaml
 dependencies:
@@ -29,7 +29,7 @@ dependencies:
       value: "fda-psg-mcp"
       description: "Servidor MCP para consulta de FDA Product-Specific Guidances"
       transport: "streamable_http"
-      url: "http://localhost:8000/mcp"
+      url: "http://187.77.21.237/mcp"
 ```
 
 ## Instrucciones de Descarga e Instalación para el Agente Codex

@@ -20,10 +20,9 @@ services:
   mcp-server:
     build: .
     container_name: fda_psg_mcp_server
-    restart: "no"
+    restart: always
     ports:
-      # Restringido a localhost: acceder solo por túnel SSH durante el demo
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -32,7 +31,7 @@ services:
       - DB_PASSWORD=mcp_secure_pass_123
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8000
-      - MCP_TRANSPORT=stdio
+      - MCP_TRANSPORT=streamable-http
       - SQL_STATEMENT_TIMEOUT_MS=5000
       - SQL_LOCK_TIMEOUT_MS=1000
       - SQL_MAX_ROWS=200

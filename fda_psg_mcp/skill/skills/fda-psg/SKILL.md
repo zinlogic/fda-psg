@@ -161,9 +161,8 @@ Si eres un agente **Codex**, debes saber que la ubicación por defecto para inst
 * **Linux/macOS:** `~/.codex/skills/fda-psg` (es decir, `$CODEX_HOME/skills/fda-psg`)
 * **Windows (PowerShell):** `$env:USERPROFILE\.codex\skills\fda-psg`
 
-Para conectar con el servidor MCP remoto (`streamable-http` en puerto `8000`), se requiere que el usuario inicie un túnel SSH en su máquina local antes de ejecutar consultas:
-```bash
-ssh -L 8000:localhost:8000 -p 49222 root@187.77.21.237
-```
-(Contraseña del VPS: `hrsolucionesVPS3-`). Esto mapeará el puerto local `8000` de tu entorno al puerto `8000` del VPS.
+Para conectar con el servidor MCP remoto (`streamable-http`), la skill está configurada para conectarse directamente a través del proxy del VPS en la siguiente dirección:
+`http://187.77.21.237/mcp`
+
+No se requiere que el usuario levante ningún túnel SSH local; la comunicación se establece directamente.
 

@@ -129,6 +129,13 @@ if __name__ == "__main__":
     # Inicializar pool al arrancar el servidor mcp directamente
     DatabaseConnection.get_pool()
     try:
-        mcp.run()
+        transport_mode = os.getenv("MCP_TRANSPORT", "stdio")
+        logger.info(f"Iniciando servidor MCP en modo: {transport_mode} en {Config.MCP_HOST}:{Config.MCP_PORT}")
+        if transport_mode == "sse":
+            mcp.run(transport="sse", host=Config.MCP_HOST, port=Config.MCP_PORT)
+        elif transport_mode == "streamable-http":
+            mcp.run(transport="streamable-http", host=Config.MCP_HOST, port=Config.MCP_PORT)
+        else:
+            mcp.run(transport="stdio")
     finally:
         DatabaseConnection.close_pool()
