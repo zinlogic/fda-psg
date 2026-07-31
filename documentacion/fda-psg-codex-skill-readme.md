@@ -1,123 +1,142 @@
 # Codex Skill: FDA Product-Specific Guidances (PSG)
 
-Este documento contiene las instrucciones para que el agente Codex descargue, instale y verifique correctamente el Skill de FDA PSG.
-
-## Estructura del Skill
-
-```text
-skills/fda-psg/
-├── SKILL.md                  # Reglas principales, flujo de trabajo y comportamiento
-├── agents/
-│   └── openai.yaml           # Declaración de dependencias MCP y metadatos para Codex
-├── references/
-│   ├── tools.md              # Documentación técnica de las tools
-│   ├── database-schema.md    # Esquema lógico expuesto (mcp_guidance_catalog, mcp_guidance_chunks)
-│   ├── query-policy.md       # Reglas de validación SQL del validador AST
-│   └── response-guidelines.md# Formato estructurado de respuestas regulatorias
-└── assets/
-    ├── icon-small.svg        # Logo pequeño del skill
-    └── icon-large.png        # Logo grande del skill
-```
-
-## Configuración y Dependencia MCP
-
-El archivo `openai.yaml` asocia este Skill directamente con el servidor MCP remoto:
-
-```yaml
-dependencies:
-  tools:
-    - type: "mcp"
-      value: "fda-psg-mcp"
-      description: "Servidor MCP para consulta de FDA Product-Specific Guidances"
-      transport: "streamable_http"
-      url: "http://187.77.21.237/mcp"
-```
+Este documento contiene las instrucciones para que el agente Codex instale el skill y registre el servidor MCP. Son dos pasos independientes: ambos son necesarios.
 
 ---
 
-## Instalación para el Agente Codex
+## Conceptos clave antes de empezar
 
-> **IMPORTANTE**: El entorno de ejecución puede tener restricciones de escritura. Usar el directorio `TEMP` para la descarga inicial es obligatorio en Windows para evitar errores de permisos. Seguir exactamente los pasos de cada sección según tu sistema operativo.
+- **Instalar el skill** (`~/.codex/skills/fda-psg/`) le da al agente las instrucciones de comportamiento (SKILL.md). Por sí solo NO habilita ninguna tool.
+- **Registrar el servidor MCP** (`~/.codex/config.toml`) es lo que hace que las tools `search_guidances`, `get_guidance`, `get_guidance_context` y `execute_readonly_sql` estén disponibles de forma nativa en el entorno del agente.
+- Ambos pasos son obligatorios. Sin el registro MCP, el agente no puede ejecutar búsquedas aunque el skill esté instalado.
 
 ---
 
-### Windows (PowerShell) — Método Probado y Recomendado
+## Paso 1 — Instalar el Skill
 
-Usar siempre `$env:TEMP` como destino de descarga inicial. Esto evita bloqueos de permisos del sandbox.
+### Windows (PowerShell)
 
 ```powershell
-# Paso 1: Descargar el ZIP en TEMP (evita restricciones de permisos de red/escritura)
+# Descargar el ZIP en TEMP (evita bloqueos de permisos)
 Invoke-WebRequest -Uri 'http://187.77.21.237/skill.zip' -OutFile "$env:TEMP\skill.zip"
 
-# Paso 2: Extraer en TEMP
+# Extraer en TEMP
 Expand-Archive -LiteralPath "$env:TEMP\skill.zip" -DestinationPath "$env:TEMP\skill-extracted" -Force
 
-# Paso 3: Crear el directorio destino de skills si no existe
+# Crear el directorio destino si no existe
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex\skills\fda-psg" | Out-Null
 
-# Paso 4: Sincronizar con robocopy /MIR (reemplaza versión anterior)
+# Sincronizar con robocopy (reemplaza versión anterior sin errores de permisos)
 robocopy "$env:TEMP\skill-extracted\skills\fda-psg" "$env:USERPROFILE\.codex\skills\fda-psg" /MIR /NFL /NDL /NJH /NJS
 
-# Paso 5: Verificar que SKILL.md quedó instalado correctamente
+# Verificar
 if (Test-Path "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md") {
-    $size = (Get-Item "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md").Length
-    Write-Output "SKILL.md instalado correctamente. Tamaño: $size bytes."
+    Write-Output "Skill instalado correctamente."
 } else {
     Write-Output "ERROR: SKILL.md no encontrado. Reinstalar."
 }
 ```
 
----
-
 ### Linux / macOS (bash)
 
 ```bash
-# Paso 1: Descargar en /tmp
 curl -o /tmp/skill.zip http://187.77.21.237/skill.zip
-
-# Paso 2: Crear el directorio destino
 mkdir -p ~/.codex/skills/
-
-# Paso 3: Extraer (reemplaza versión anterior)
 unzip -o /tmp/skill.zip -d /tmp/skill-extracted
-
-# Paso 4: Sincronizar
 rsync -av --delete /tmp/skill-extracted/skills/fda-psg/ ~/.codex/skills/fda-psg/
-
-# Paso 5: Verificar
-ls -lh ~/.codex/skills/fda-psg/SKILL.md && echo "SKILL.md instalado correctamente." || echo "ERROR: SKILL.md no encontrado."
+ls ~/.codex/skills/fda-psg/SKILL.md && echo "Skill instalado." || echo "ERROR."
 ```
 
 ---
 
-### Verificación obligatoria del contenido del SKILL.md
+## Paso 2 — Registrar el servidor MCP en Codex (OBLIGATORIO)
 
-Después de instalar, **el agente debe leer y confirmar** que el `SKILL.md` instalado contiene la sección `## Reglas de Idioma y Ejecución de Herramientas (CRÍTICO)`.
+> **Este es el paso que habilita las tools nativas**. Sin esto, el agente no puede ejecutar búsquedas.
+
+### Opción A — Usando el comando de Codex (recomendado)
+
+```bash
+codex mcp add fda-psg-mcp --url http://187.77.21.237/mcp
+```
+
+Verificar que quedó registrado:
+```bash
+codex mcp list
+```
+Debe aparecer `fda-psg-mcp` en la lista.
+
+### Opción B — Editando `config.toml` manualmente
+
+Agregar este bloque al archivo `~/.codex/config.toml` (crearlo si no existe):
 
 **Windows (PowerShell):**
 ```powershell
-Select-String -Path "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md" -Pattern "Reglas de Idioma"
+$config = "$env:USERPROFILE\.codex\config.toml"
+$entry = "`n[mcp_servers.fda-psg-mcp]`nurl = `"http://187.77.21.237/mcp`"`n"
+Add-Content -Path $config -Value $entry
 ```
 
 **Linux / macOS:**
 ```bash
-grep "Reglas de Idioma" ~/.codex/skills/fda-psg/SKILL.md
+cat >> ~/.codex/config.toml << 'EOF'
+
+[mcp_servers.fda-psg-mcp]
+url = "http://187.77.21.237/mcp"
+EOF
 ```
 
-Si ese grep devuelve resultado, la skill instalada es la versión actualizada correcta.
-Si no devuelve nada, la skill es una versión antigua — repetir la instalación.
+**Contenido resultante esperado en `config.toml`:**
+```toml
+[mcp_servers.fda-psg-mcp]
+url = "http://187.77.21.237/mcp"
+```
 
 ---
 
-## Reglas operativas fundamentales (resumen para el agente)
+## Paso 3 — Verificar que las tools están disponibles
 
-Una vez instalado el skill, el agente debe tener presente:
+Tras registrar el servidor MCP, verificar conectividad:
 
-1. **Los datos están en inglés**: toda búsqueda debe realizarse con términos en inglés, aunque el usuario pregunte en español. Ejemplos:
-   - "ibuprofeno" → buscar como `ibuprofen`
-   - "suspensión oral" → buscar como `oral suspension`
-   - "tableta" → buscar como `tablet`
+```bash
+codex mcp list
+```
 
-2. **Usar herramientas nativas del MCP**: nunca hacer peticiones manuales HTTP/JSON-RPC con `Invoke-WebRequest`, `Invoke-RestMethod` o `curl`. Las tools disponibles son `search_guidances`, `get_guidance`, `get_guidance_context` y `execute_readonly_sql`. Llamarlas directamente desde el entorno del agente.
+Debe mostrar `fda-psg-mcp` con estado conectado o la URL registrada.
 
-3. **El servidor MCP es público**: accesible en `http://187.77.21.237/mcp` sin necesidad de túneles SSH ni configuración adicional de red.
+Luego pedir al agente:
+> "Buscá las Product-Specific Guidances de Ibuprofen"
+
+Si responde con resultados reales de la base de datos (guías, fechas, RLD/RS), la configuración es correcta.
+Si dice que no tiene las tools disponibles, verificar que el Paso 2 se ejecutó y reiniciar Codex.
+
+---
+
+## Reglas operativas que el agente debe seguir
+
+1. **Los datos están en inglés**: traducir términos antes de buscar.
+   - "ibuprofeno" → `Ibuprofen`
+   - "suspensión oral" → `Oral Suspension`
+   - "tableta" → `Tablet`
+
+2. **Usar solo las tools nativas del MCP**: nunca hacer peticiones HTTP manuales con PowerShell o bash al endpoint `/mcp`.
+
+3. **El servidor es público**: no requiere túneles SSH. La URL `http://187.77.21.237/mcp` es directamente accesible.
+
+---
+
+## Estructura del skill (referencia)
+
+```text
+skills/fda-psg/
+├── SKILL.md                   # Instrucciones de comportamiento del agente
+├── agents/
+│   └── openai.yaml            # Declaración de dependencias MCP
+├── references/
+│   ├── tools.md               # Documentación técnica de las tools
+│   ├── database-schema.md     # Esquema lógico de las vistas expuestas
+│   ├── query-policy.md        # Reglas de validación SQL
+│   └── response-guidelines.md # Formato de respuestas regulatorias
+└── assets/
+    ├── icon-small.svg
+    └── icon-large.png
+```
