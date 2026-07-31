@@ -31,3 +31,42 @@ dependencies:
       transport: "streamable_http"
       url: "http://localhost:8000/mcp"
 ```
+
+## Instrucciones de Descarga e Instalación para el Agente Codex
+
+Sigue estos pasos para descargar, extraer e instalar el Skill en tu entorno:
+
+### 1. Descargar el archivo `skill.zip`
+Puedes descargar el paquete comprimido directamente por HTTP o usando SCP desde el VPS:
+
+* **Opción A (HTTP Directo):**
+  ```bash
+  curl -O http://187.77.21.237/skill.zip
+  ```
+
+* **Opción B (SCP Seguro):**
+  Usa la contraseña `hrsolucionesVPS3-` cuando te sea requerida:
+  ```bash
+  sshpass -p 'hrsolucionesVPS3-' scp -P 49222 root@187.77.21.237:/opt/fda-psg-mcp/skill.zip .
+  ```
+
+### 2. Descomprimir e Instalar en el Workspace
+Para instalar la skill localmente en el espacio de trabajo actual (donde se autodetectará automáticamente):
+
+```bash
+# Crear el directorio de skills del proyecto si no existe
+mkdir -p .agents/skills/
+
+# Extraer el contenido en la ruta adecuada
+unzip skill.zip -d .agents/
+
+# (Opcional) Si quieres copiar también la configuración de conexión MCP
+cp .agents/mcp_config.json .agents/mcp_config.json
+```
+
+### 3. Verificar la Configuración
+Una vez extraído, confirma que la estructura del directorio sea:
+`.agents/skills/fda-psg/SKILL.md`
+
+El agente Codex detectará y activará el skill automáticamente al procesar consultas relacionadas con Product-Specific Guidances de la FDA.
+
