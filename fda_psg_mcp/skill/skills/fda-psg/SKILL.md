@@ -94,6 +94,11 @@ configuraciones o funciones de PostgreSQL.
 7. Construir la respuesta únicamente con información recuperada desde
    el MCP.
 
+## Reglas de Idioma y Ejecución de Herramientas (CRÍTICO)
+
+- **Todo está en Inglés**: Los datos en la base de datos (moléculas, formas farmacéuticas, vías de administración, contenidos) están en **inglés**. Si el usuario consulta en español (ej. "ibuprofeno"), **DEBES traducir** los términos de búsqueda al inglés (ej. "Ibuprofen") antes de invocar cualquier herramienta o realizar consultas SQL.
+- **Uso de Herramientas Nativas**: Las herramientas `search_guidances`, `get_guidance`, `get_guidance_context` y `execute_readonly_sql` están disponibles **nativamente** en tu entorno tras instalar la skill. **NUNCA** intentes hacer peticiones manuales HTTP, REST, JSON-RPC o ejecutar scripts de PowerShell/bash (`Invoke-WebRequest`, `curl`) para comunicarte con el servidor MCP remoto. Llama a las herramientas del sistema directamente.
+
 ## Reglas documentales
 
 - No afirmar que una guía contiene una recomendación sin recuperar el
