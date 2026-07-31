@@ -51,38 +51,43 @@ ls ~/.codex/skills/fda-psg/SKILL.md && echo "Skill instalado." || echo "ERROR."
 
 ## Paso 2 — Registrar el servidor MCP en Codex (OBLIGATORIO)
 
-> **Este es el paso que habilita las tools nativas**. Sin esto, el agente no puede ejecutar búsquedas.
+> **Este es el paso que habilita las tools nativas**. Sin esto, el agente no puede ejecutar búsquedas aunque el skill esté instalado.
 
-### Opción A — Usando el comando de Codex (recomendado)
+> **IMPORTANTE**: En entornos con restricciones de ejecución, el comando `codex mcp add` puede devolver "Acceso denegado". En ese caso usar siempre la **Opción A** (edición directa del archivo) que no requiere ejecutar binarios externos.
 
-```bash
-codex mcp add fda-psg-mcp --url http://187.77.21.237/mcp
-```
-
-Verificar que quedó registrado:
-```bash
-codex mcp list
-```
-Debe aparecer `fda-psg-mcp` en la lista.
-
-### Opción B — Editando `config.toml` manualmente
-
-Agregar este bloque al archivo `~/.codex/config.toml` (crearlo si no existe):
+### Opción A — Editar `config.toml` directamente (funciona en entornos restringidos)
 
 **Windows (PowerShell):**
 ```powershell
+# Crear el directorio si no existe
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex" | Out-Null
+
 $config = "$env:USERPROFILE\.codex\config.toml"
-$entry = "`n[mcp_servers.fda-psg-mcp]`nurl = `"http://187.77.21.237/mcp`"`n"
-Add-Content -Path $config -Value $entry
+
+# Agregar el bloque MCP solo si no existe ya
+$entry = "[mcp_servers.fda-psg-mcp]`nurl = `"http://187.77.21.237/mcp`"`n"
+if (-not (Test-Path $config) -or -not (Select-String -Path $config -Pattern "fda-psg-mcp" -Quiet)) {
+    Add-Content -Path $config -Value "`n$entry"
+    Write-Output "MCP registrado en $config"
+} else {
+    Write-Output "MCP ya estaba registrado."
+}
+
+# Verificar
+Get-Content $config
 ```
 
 **Linux / macOS:**
 ```bash
-cat >> ~/.codex/config.toml << 'EOF'
-
-[mcp_servers.fda-psg-mcp]
-url = "http://187.77.21.237/mcp"
-EOF
+mkdir -p ~/.codex
+config=~/.codex/config.toml
+if ! grep -q "fda-psg-mcp" "$config" 2>/dev/null; then
+    printf '\n[mcp_servers.fda-psg-mcp]\nurl = "http://187.77.21.237/mcp"\n' >> "$config"
+    echo "MCP registrado."
+else
+    echo "MCP ya estaba registrado."
+fi
+cat "$config"
 ```
 
 **Contenido resultante esperado en `config.toml`:**
@@ -90,6 +95,14 @@ EOF
 [mcp_servers.fda-psg-mcp]
 url = "http://187.77.21.237/mcp"
 ```
+
+### Opción B — Usando el comando de Codex (solo si el entorno lo permite)
+
+```bash
+codex mcp add fda-psg-mcp --url http://187.77.21.237/mcp
+```
+
+Si devuelve "Acceso denegado" o similar, usar la Opción A.
 
 ---
 
