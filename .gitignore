@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.idea/
+data/
+credenciales/
+# Evitar subir el dump de la DB y archivos ZIP pesados a git
+fda_psg_mcp/data/
+*.zip
+*.db
+*.log

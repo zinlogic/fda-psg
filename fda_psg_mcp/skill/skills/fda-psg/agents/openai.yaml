@@ -1,0 +1,18 @@
+interface:
+  display_name: "FDA PSG Research"
+  short_description: "Consulta y analiza guías específicas por producto de FDA"
+  icon_small: "../assets/icon-small.svg"
+  icon_large: "../assets/icon-large.png"
+  brand_color: "#163A5F"
+  default_prompt: "Buscá las Product-Specific Guidances de FDA relacionadas con la molécula indicada."
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "fda-psg-mcp"
+      description: "Servidor MCP para consulta de FDA Product-Specific Guidances"
+      transport: "streamable_http"
+      url: "http://localhost:8000/mcp"

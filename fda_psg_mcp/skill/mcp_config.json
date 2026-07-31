@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "fda-psg-mcp": {
+      "command": "ssh",
+      "args": [
+        "-p",
+        "49222",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "root@187.77.21.237",
+        "docker run --rm -i --network fda-psg-mcp_default -e DB_HOST=db -e DB_USER=mcp_fda_reader -e DB_PASSWORD=mcp_secure_pass_123 fda-psg-mcp-mcp-server:latest"
+      ]
+    }
+  }
+}

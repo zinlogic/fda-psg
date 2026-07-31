@@ -1,0 +1,5 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "fda-psg-mcp-plugin",
+  "description": "Plugin para conectar y consultar las guías Product-Specific Guidances (PSG) de la FDA a través de un servidor MCP remoto."
+}

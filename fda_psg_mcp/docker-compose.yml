@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: fda_psg_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: db_dlab
+      POSTGRES_USER: dlab
+      POSTGRES_PASSWORD: dl0041
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Los scripts se ejecutan en orden alfabético: 01_ primero (backup de datos), 02_ segundo (vistas y usuario)
+      - ./data/backup.sql:/docker-entrypoint-initdb.d/01_backup.sql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/02_init-db.sql
+
+  mcp-server:
+    build: .
+    container_name: fda_psg_mcp_server
+    restart: "no"
+    ports:
+      # Restringido a localhost: acceder solo por túnel SSH durante el demo
+      - "127.0.0.1:8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=db_dlab
+      - DB_USER=mcp_fda_reader
+      - DB_PASSWORD=mcp_secure_pass_123
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - MCP_TRANSPORT=stdio
+      - SQL_STATEMENT_TIMEOUT_MS=5000
+      - SQL_LOCK_TIMEOUT_MS=1000
+      - SQL_MAX_ROWS=200
+      - SQL_MAX_RESPONSE_BYTES=1048576
+      - GUIDANCE_MAX_MARKDOWN_BYTES=50000
+      - GUIDANCE_CONTEXT_MAX_CHUNKS=20
+      - LOG_LEVEL=INFO
+    depends_on:
+      - db
+
+volumes:
+  db-data:

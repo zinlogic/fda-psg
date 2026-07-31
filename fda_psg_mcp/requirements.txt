@@ -1,0 +1,7 @@
+mcp>=1.0.0,<2.0.0
+fastmcp>=0.4.1
+pydantic>=2.10.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.1
+psycopg2-binary>=2.9.9
+sqlglot>=23.0.0
