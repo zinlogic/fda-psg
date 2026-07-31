@@ -1,155 +1,98 @@
-# Codex Skill: FDA Product-Specific Guidances (PSG)
+# Instrucciones de instalación — Skill FDA PSG para Codex
 
-Este documento contiene las instrucciones para que el agente Codex instale el skill y registre el servidor MCP. Son dos pasos independientes: ambos son necesarios.
-
----
-
-## Conceptos clave antes de empezar
-
-- **Instalar el skill** (`~/.codex/skills/fda-psg/`) le da al agente las instrucciones de comportamiento (SKILL.md). Por sí solo NO habilita ninguna tool.
-- **Registrar el servidor MCP** (`~/.codex/config.toml`) es lo que hace que las tools `search_guidances`, `get_guidance`, `get_guidance_context` y `execute_readonly_sql` estén disponibles de forma nativa en el entorno del agente.
-- Ambos pasos son obligatorios. Sin el registro MCP, el agente no puede ejecutar búsquedas aunque el skill esté instalado.
+**Estas instrucciones están dirigidas al agente Codex.**
+El usuario te está pasando este archivo para que instales el skill de FDA Product-Specific Guidances y lo dejes funcionando. Seguí los pasos en orden sin saltear ninguno.
 
 ---
 
-## Paso 1 — Instalar el Skill
+## Qué vas a instalar
 
-### Windows (PowerShell)
+Un skill que te conecta a una base de datos de guías regulatorias de la FDA. Una vez instalado, vas a poder responder preguntas como "¿qué guías de bioequivalencia existen para Ibuprofen?" usando tools nativas de tu entorno.
+
+La instalación tiene **dos partes**:
+1. Copiar los archivos del skill a tu directorio de Codex
+2. Registrar el servidor MCP para que las tools estén disponibles
+
+---
+
+## Paso 1 — Descargar e instalar el skill
+
+Ejecutá este bloque de PowerShell. Descarga el skill en una carpeta temporal para evitar bloqueos de permisos, y luego lo copia al lugar correcto.
 
 ```powershell
-# Descargar el ZIP en TEMP (evita bloqueos de permisos)
+# Descargar en TEMP (evita bloqueos de red/permisos)
 Invoke-WebRequest -Uri 'http://187.77.21.237/skill.zip' -OutFile "$env:TEMP\skill.zip"
 
 # Extraer en TEMP
 Expand-Archive -LiteralPath "$env:TEMP\skill.zip" -DestinationPath "$env:TEMP\skill-extracted" -Force
 
-# Crear el directorio destino si no existe
+# Crear el directorio destino
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex\skills\fda-psg" | Out-Null
 
-# Sincronizar con robocopy (reemplaza versión anterior sin errores de permisos)
+# Copiar con robocopy (reemplaza versión anterior si existe)
 robocopy "$env:TEMP\skill-extracted\skills\fda-psg" "$env:USERPROFILE\.codex\skills\fda-psg" /MIR /NFL /NDL /NJH /NJS
 
 # Verificar
 if (Test-Path "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md") {
-    Write-Output "Skill instalado correctamente."
+    Write-Output "OK: Skill instalado."
 } else {
-    Write-Output "ERROR: SKILL.md no encontrado. Reinstalar."
+    Write-Output "ERROR: SKILL.md no encontrado."
 }
-```
-
-### Linux / macOS (bash)
-
-```bash
-curl -o /tmp/skill.zip http://187.77.21.237/skill.zip
-mkdir -p ~/.codex/skills/
-unzip -o /tmp/skill.zip -d /tmp/skill-extracted
-rsync -av --delete /tmp/skill-extracted/skills/fda-psg/ ~/.codex/skills/fda-psg/
-ls ~/.codex/skills/fda-psg/SKILL.md && echo "Skill instalado." || echo "ERROR."
 ```
 
 ---
 
-## Paso 2 — Registrar el servidor MCP en Codex (OBLIGATORIO)
+## Paso 2 — Registrar el servidor MCP
 
-> **Este es el paso que habilita las tools nativas**. Sin esto, el agente no puede ejecutar búsquedas aunque el skill esté instalado.
+Esto es lo que hace que las tools de búsqueda estén disponibles. Escribí directamente en el archivo de configuración de Codex — no uses `codex mcp add` porque puede estar bloqueado por el entorno.
 
-> **IMPORTANTE**: En entornos con restricciones de ejecución, el comando `codex mcp add` puede devolver "Acceso denegado". En ese caso usar siempre la **Opción A** (edición directa del archivo) que no requiere ejecutar binarios externos.
-
-### Opción A — Editar `config.toml` directamente (funciona en entornos restringidos)
-
-**Windows (PowerShell):**
 ```powershell
-# Crear el directorio si no existe
+# Crear directorio de configuración si no existe
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex" | Out-Null
 
 $config = "$env:USERPROFILE\.codex\config.toml"
+$entry = "[mcp_servers.fda-psg-mcp]`nurl = `"http://187.77.21.237/mcp`""
 
-# Agregar el bloque MCP solo si no existe ya
-$entry = "[mcp_servers.fda-psg-mcp]`nurl = `"http://187.77.21.237/mcp`"`n"
+# Agregar solo si no está ya registrado
 if (-not (Test-Path $config) -or -not (Select-String -Path $config -Pattern "fda-psg-mcp" -Quiet)) {
     Add-Content -Path $config -Value "`n$entry"
-    Write-Output "MCP registrado en $config"
+    Write-Output "OK: MCP registrado."
 } else {
-    Write-Output "MCP ya estaba registrado."
+    Write-Output "OK: MCP ya estaba registrado."
 }
 
-# Verificar
+# Mostrar el contenido resultante del archivo
 Get-Content $config
 ```
 
-**Linux / macOS:**
-```bash
-mkdir -p ~/.codex
-config=~/.codex/config.toml
-if ! grep -q "fda-psg-mcp" "$config" 2>/dev/null; then
-    printf '\n[mcp_servers.fda-psg-mcp]\nurl = "http://187.77.21.237/mcp"\n' >> "$config"
-    echo "MCP registrado."
-else
-    echo "MCP ya estaba registrado."
-fi
-cat "$config"
+---
+
+## Paso 3 — Verificar que todo quedó bien
+
+Confirmá que estos dos archivos existen:
+
+```powershell
+Test-Path "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md"
+Test-Path "$env:USERPROFILE\.codex\config.toml"
 ```
 
-**Contenido resultante esperado en `config.toml`:**
-```toml
-[mcp_servers.fda-psg-mcp]
-url = "http://187.77.21.237/mcp"
-```
-
-### Opción B — Usando el comando de Codex (solo si el entorno lo permite)
-
-```bash
-codex mcp add fda-psg-mcp --url http://187.77.21.237/mcp
-```
-
-Si devuelve "Acceso denegado" o similar, usar la Opción A.
+Ambos deben devolver `True`. Si alguno devuelve `False`, repetí el paso correspondiente.
 
 ---
 
-## Paso 3 — Verificar que las tools están disponibles
+## Paso 4 — Probar la conexión
 
-Tras registrar el servidor MCP, verificar conectividad:
+Hacé una búsqueda de prueba. Acordate que **toda la base de datos está en inglés**, así que usá siempre el nombre en inglés de la molécula.
 
-```bash
-codex mcp list
-```
-
-Debe mostrar `fda-psg-mcp` con estado conectado o la URL registrada.
-
-Luego pedir al agente:
+Pedile al agente:
 > "Buscá las Product-Specific Guidances de Ibuprofen"
 
-Si responde con resultados reales de la base de datos (guías, fechas, RLD/RS), la configuración es correcta.
-Si dice que no tiene las tools disponibles, verificar que el Paso 2 se ejecutó y reiniciar Codex.
+Si devuelve resultados con nombres de archivos PDF, fechas y números RLD/RS, la instalación está completa y funcional.
 
 ---
 
-## Reglas operativas que el agente debe seguir
+## Importante: reglas de uso
 
-1. **Los datos están en inglés**: traducir términos antes de buscar.
-   - "ibuprofeno" → `Ibuprofen`
-   - "suspensión oral" → `Oral Suspension`
-   - "tableta" → `Tablet`
-
-2. **Usar solo las tools nativas del MCP**: nunca hacer peticiones HTTP manuales con PowerShell o bash al endpoint `/mcp`.
-
-3. **El servidor es público**: no requiere túneles SSH. La URL `http://187.77.21.237/mcp` es directamente accesible.
-
----
-
-## Estructura del skill (referencia)
-
-```text
-skills/fda-psg/
-├── SKILL.md                   # Instrucciones de comportamiento del agente
-├── agents/
-│   └── openai.yaml            # Declaración de dependencias MCP
-├── references/
-│   ├── tools.md               # Documentación técnica de las tools
-│   ├── database-schema.md     # Esquema lógico de las vistas expuestas
-│   ├── query-policy.md        # Reglas de validación SQL
-│   └── response-guidelines.md # Formato de respuestas regulatorias
-└── assets/
-    ├── icon-small.svg
-    └── icon-large.png
-```
+- **Los datos están en inglés**: si el usuario pregunta en español, traducí el término antes de buscar. Ejemplos: "ibuprofeno" → `Ibuprofen`, "suspensión oral" → `Oral Suspension`, "tableta" → `Tablet`.
+- **Usá las tools nativas**: nunca hagas peticiones HTTP manuales al servidor. Las tools disponibles son `search_guidances`, `get_guidance`, `get_guidance_context` y `execute_readonly_sql`.
+- **El servidor es público**: no se necesita ningún túnel ni configuración de red adicional. La URL es `http://187.77.21.237/mcp`.
