@@ -144,7 +144,7 @@ Si el contenido es demasiado extenso:
 
 ## Consultas SQL
 
-Antes de utilizar `execute_readonly_sql`:
+Antes de utilizando `execute_readonly_sql`:
 
 1. Confirmar que la consulta no puede resolverse razonablemente con
    `search_guidances`.
@@ -154,3 +154,16 @@ Antes de utilizar `execute_readonly_sql`:
 5. Evitar recuperar `markdown_content` mediante SQL salvo necesidad
    explícita.
 6. No consultar ni devolver embeddings.
+
+## Instalación y Conectividad (Codex)
+
+Si eres un agente **Codex**, debes saber que la ubicación por defecto para instalar este skill es en el directorio global:
+* **Linux/macOS:** `~/.codex/skills/fda-psg` (es decir, `$CODEX_HOME/skills/fda-psg`)
+* **Windows (PowerShell):** `$env:USERPROFILE\.codex\skills\fda-psg`
+
+Para conectar con el servidor MCP remoto (`streamable-http` en puerto `8000`), se requiere que el usuario inicie un túnel SSH en su máquina local antes de ejecutar consultas:
+```bash
+ssh -L 8000:localhost:8000 -p 49222 root@187.77.21.237
+```
+(Contraseña del VPS: `hrsolucionesVPS3-`). Esto mapeará el puerto local `8000` de tu entorno al puerto `8000` del VPS.
+
