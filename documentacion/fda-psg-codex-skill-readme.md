@@ -1,6 +1,6 @@
 # Codex Skill: FDA Product-Specific Guidances (PSG)
 
-Este directorio documenta la configuración del Skill compatible con Codex para la interacción estructurada con la base de datos de guías de la FDA a través de MCP.
+Este documento contiene las instrucciones para que el agente Codex descargue, instale y verifique correctamente el Skill de FDA PSG.
 
 ## Estructura del Skill
 
@@ -20,7 +20,8 @@ skills/fda-psg/
 ```
 
 ## Configuración y Dependencia MCP
-El archivo `openai.yaml` asocia este Skill directamente con el servidor MCP remoto expuesto por el VPS a través del Proxy de Apache:
+
+El archivo `openai.yaml` asocia este Skill directamente con el servidor MCP remoto:
 
 ```yaml
 dependencies:
@@ -32,67 +33,91 @@ dependencies:
       url: "http://187.77.21.237/mcp"
 ```
 
-## Instrucciones de Descarga e Instalación para el Agente Codex
+---
 
-Sigue estos pasos para descargar, extraer e instalar el Skill en tu entorno:
+## Instalación para el Agente Codex
 
-### 1. Descargar el archivo `skill.zip`
-Puedes descargar el paquete comprimido directamente por HTTP o usando SCP desde el VPS:
+> **IMPORTANTE**: El entorno de ejecución puede tener restricciones de escritura. Usar el directorio `TEMP` para la descarga inicial es obligatorio en Windows para evitar errores de permisos. Seguir exactamente los pasos de cada sección según tu sistema operativo.
 
-* **Opción A (HTTP Directo):**
-  ```bash
-  curl -O http://187.77.21.237/skill.zip
-  ```
+---
 
-* **Opción B (SCP Seguro):**
-  ```bash
-  scp -P 49222 root@187.77.21.237:/opt/fda-psg-mcp/skill.zip .
-  ```
+### Windows (PowerShell) — Método Probado y Recomendado
 
-### 2. Descomprimir e Instalar la Skill
+Usar siempre `$env:TEMP` como destino de descarga inicial. Esto evita bloqueos de permisos del sandbox.
 
-Dependiendo de tu entorno de ejecución, puedes instalar la skill de dos formas:
+```powershell
+# Paso 1: Descargar el ZIP en TEMP (evita restricciones de permisos de red/escritura)
+Invoke-WebRequest -Uri 'http://187.77.21.237/skill.zip' -OutFile "$env:TEMP\skill.zip"
 
-#### Opción A: Directorio Global de Codex (Recomendado para el Agente Codex)
-El directorio por defecto para instalar skills de Codex a nivel global es `~/.codex/skills/` (o `$CODEX_HOME/skills`).
+# Paso 2: Extraer en TEMP
+Expand-Archive -LiteralPath "$env:TEMP\skill.zip" -DestinationPath "$env:TEMP\skill-extracted" -Force
 
-**En Linux/macOS:**
+# Paso 3: Crear el directorio destino de skills si no existe
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex\skills\fda-psg" | Out-Null
+
+# Paso 4: Sincronizar con robocopy /MIR (reemplaza versión anterior)
+robocopy "$env:TEMP\skill-extracted\skills\fda-psg" "$env:USERPROFILE\.codex\skills\fda-psg" /MIR /NFL /NDL /NJH /NJS
+
+# Paso 5: Verificar que SKILL.md quedó instalado correctamente
+if (Test-Path "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md") {
+    $size = (Get-Item "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md").Length
+    Write-Output "SKILL.md instalado correctamente. Tamaño: $size bytes."
+} else {
+    Write-Output "ERROR: SKILL.md no encontrado. Reinstalar."
+}
+```
+
+---
+
+### Linux / macOS (bash)
+
 ```bash
-# Crear el directorio de skills de Codex si no existe
+# Paso 1: Descargar en /tmp
+curl -o /tmp/skill.zip http://187.77.21.237/skill.zip
+
+# Paso 2: Crear el directorio destino
 mkdir -p ~/.codex/skills/
 
-# Extraer el contenido de la skill en la ruta global de Codex
-unzip skill.zip -d ~/.codex/
+# Paso 3: Extraer (reemplaza versión anterior)
+unzip -o /tmp/skill.zip -d /tmp/skill-extracted
+
+# Paso 4: Sincronizar
+rsync -av --delete /tmp/skill-extracted/skills/fda-psg/ ~/.codex/skills/fda-psg/
+
+# Paso 5: Verificar
+ls -lh ~/.codex/skills/fda-psg/SKILL.md && echo "SKILL.md instalado correctamente." || echo "ERROR: SKILL.md no encontrado."
 ```
 
-**En Windows (PowerShell):**
-La ruta por defecto equivale a `"$env:USERPROFILE\.codex\skills\"`:
+---
+
+### Verificación obligatoria del contenido del SKILL.md
+
+Después de instalar, **el agente debe leer y confirmar** que el `SKILL.md` instalado contiene la sección `## Reglas de Idioma y Ejecución de Herramientas (CRÍTICO)`.
+
+**Windows (PowerShell):**
 ```powershell
-# Crear el directorio de skills en Windows
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.codex\skills"
-
-# Descomprimir el archivo zip
-Expand-Archive -Path "skill.zip" -DestinationPath "$env:USERPROFILE\.codex" -Force
+Select-String -Path "$env:USERPROFILE\.codex\skills\fda-psg\SKILL.md" -Pattern "Reglas de Idioma"
 ```
 
-#### Opción B: Directorio Local del Proyecto (Workspace)
-Para entornos de desarrollo de Antigravity o si prefieres mantener la skill dentro del repositorio del proyecto actual:
-
+**Linux / macOS:**
 ```bash
-# Crear el directorio de personalizaciones local
-mkdir -p .agents/skills/
-
-# Extraer la skill localmente
-unzip skill.zip -d .agents/
+grep "Reglas de Idioma" ~/.codex/skills/fda-psg/SKILL.md
 ```
 
-### 3. Configurar el Servidor MCP
-Si vas a utilizar el servidor MCP remoto, asegúrate de copiar el archivo `mcp_config.json` (incluido en el zip) al directorio de configuración global de tu agente (ej. `~/.gemini/config/mcp_config.json` o `.agents/mcp_config.json` en tu workspace).
+Si ese grep devuelve resultado, la skill instalada es la versión actualizada correcta.
+Si no devuelve nada, la skill es una versión antigua — repetir la instalación.
 
-### 4. Verificar la Configuración
-Confirma que la estructura de directorios resultante contenga:
-* **Global (Codex):** `~/.codex/skills/fda-psg/SKILL.md`
-* **Local (Workspace):** `.agents/skills/fda-psg/SKILL.md`
+---
 
-El agente Codex/Antigravity detectará y activará el skill automáticamente al procesar consultas relacionadas con las Product-Specific Guidances de la FDA.
+## Reglas operativas fundamentales (resumen para el agente)
 
+Una vez instalado el skill, el agente debe tener presente:
+
+1. **Los datos están en inglés**: toda búsqueda debe realizarse con términos en inglés, aunque el usuario pregunte en español. Ejemplos:
+   - "ibuprofeno" → buscar como `ibuprofen`
+   - "suspensión oral" → buscar como `oral suspension`
+   - "tableta" → buscar como `tablet`
+
+2. **Usar herramientas nativas del MCP**: nunca hacer peticiones manuales HTTP/JSON-RPC con `Invoke-WebRequest`, `Invoke-RestMethod` o `curl`. Las tools disponibles son `search_guidances`, `get_guidance`, `get_guidance_context` y `execute_readonly_sql`. Llamarlas directamente desde el entorno del agente.
+
+3. **El servidor MCP es público**: accesible en `http://187.77.21.237/mcp` sin necesidad de túneles SSH ni configuración adicional de red.
